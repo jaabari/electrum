@@ -71,6 +71,7 @@ class WalletStorage(Logger):
         if self.file_exists():
             with open(self.path, "r", encoding='utf-8') as f:
                 self.raw = f.read()
+                self.pos = f.seek(0, os.SEEK_END)
             self._encryption_version = self._init_encryption_version()
         else:
             self.raw = ''
@@ -83,7 +84,7 @@ class WalletStorage(Logger):
         s = self.encrypt_before_writing(data)
         temp_path = "%s.tmp.%s" % (self.path, os.getpid())
         with open(temp_path, "w", encoding='utf-8') as f:
-            f.write(s)
+            self.pos = f.write(s)
             f.flush()
             os.fsync(f.fileno())
         try:
@@ -101,9 +102,10 @@ class WalletStorage(Logger):
     def append(self, data: str) -> None:
         """ append data to file. for the moment, only non-encrypted file"""
         assert not self.is_encrypted()
-        with open(self.path, "r+") as f:
-            f.seek(0, os.SEEK_END)
-            f.write(data)
+        with open(self.path, "r+", encoding='utf-8') as f:
+            pos = f.seek(0, os.SEEK_END)
+            assert pos == self.pos, (self.pos, pos)
+            self.pos += f.write(data)
             f.flush()
             os.fsync(f.fileno())
 
