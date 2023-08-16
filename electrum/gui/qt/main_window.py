@@ -1520,7 +1520,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
 
     def update_console(self):
         console = self.console
-        console.history = self.wallet.db.get("qt-console-history", [])
+        console.history = self.wallet.db.get_stored_item("qt-console-history", [])
         console.history_index = len(console.history)
 
         console.updateNamespace({

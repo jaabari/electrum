@@ -269,6 +269,7 @@ class JsonDB(Logger):
     def modified(self):
         return self._modified
 
+    @locked
     def add_patch(self, patch):
         self.pending_changes.append(json.dumps(patch, cls=JsonDBJsonEncoder))
 
@@ -303,6 +304,12 @@ class JsonDB(Logger):
         if name not in self.data:
             self.data[name] = {}
         return self.data[name]
+
+    @locked
+    def get_stored_item(self, key, default) -> dict:
+        if key not in self.data:
+            self.data[key] = default
+        return self.data[key]
 
     @locked
     def dump(self, *, human_readable: bool = True) -> str:
@@ -356,11 +363,13 @@ class JsonDB(Logger):
 
     @locked
     def _append_pending_changes(self):
-        if threading.currentThread().isDaemon():
+        if threading.current_thread().daemon:
             self.logger.warning('daemon thread cannot write db')
             return
         if not self.pending_changes:
+            self.logger.info('no pending changes')
             return
+        self.logger.info(f'appending {len(self.pending_changes)} pending changes')
         s = ''.join([',\n' + x for x in self.pending_changes])
         self.storage.append(s)
         self.pending_changes = []
